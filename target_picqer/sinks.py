@@ -218,13 +218,6 @@ class BuyOrders(PicqerSink):
 
             mapping: dict[str, Any] = {
                 "delivery_date": self.convert_datetime(record.get("created_at")),
-                "supplier_orderid": str(
-                    record.get("externalid")
-                    or record.get("externalId")
-                    or record.get("order_number")
-                    or record.get("id")
-                    or ""
-                ),
                 "idwarehouse": self._warehouse_id(),
                 "products": products,
             }

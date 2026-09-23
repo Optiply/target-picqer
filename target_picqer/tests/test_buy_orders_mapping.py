@@ -42,13 +42,35 @@ def test_buy_orders_stream_mapping_uses_default_data_singer_payload():
         "idsupplier": 42,
         "idwarehouse": 6178,
         "delivery_date": "2026-07-10",
-        "supplier_orderid": "123456",
         "remarks": "Ordernummer Optiply: 123456",
         "products": [
             {"idproduct": 10001, "amount": 12},
             {"idproduct": 10002, "amount": 6},
         ],
     }
+
+
+def test_buy_orders_writes_id_only_to_configured_description_field():
+    sink = make_sink(
+        {
+            "buy_order_export_warehouse": "6178",
+            "buy_order_description_field": "supplier_orderid",
+            "buy_order_description_template": "Optiply-{{buy_order_id}}",
+        }
+    )
+
+    payload = sink.preprocess_record(
+        {
+            "id": 123456,
+            "created_at": "2026-07-10",
+            "supplier_remoteId": "42",
+            "line_items": [{"product_remoteId": "10001", "quantity": 12}],
+        },
+        {},
+    )
+
+    assert payload["supplier_orderid"] == "Optiply-123456"
+    assert "remarks" not in payload
 
 
 def test_buy_orders_uses_supplier_name_for_picqer_fulfilment():
