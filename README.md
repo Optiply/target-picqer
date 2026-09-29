@@ -16,7 +16,16 @@ pipx install target-picqer
 
 ### Accepted Config Options
 
-- [ ] `Developer TODO:` Provide a list of config options accepted by the target.
+| Setting | Required | Description |
+| --- | --- | --- |
+| `api_key` | Yes | Picqer API key. |
+| `org` | Yes | Picqer organization subdomain. |
+| `picqer_fulfilment` | No | Use the supplier name instead of a Picqer supplier ID. |
+| `idfulfilment_customer` | No | Picqer fulfilment customer ID assigned to exported purchase orders. Configure this when products belong to a fulfilment customer. |
+| `buy_order_export_as_concept` | No | Leave created purchase orders in concept status. |
+| `buy_order_export_warehouse` | Yes for buy-order exports | Picqer warehouse ID used for exported purchase orders. |
+| `buy_order_description_field` | No | Picqer purchase-order field receiving the rendered description. |
+| `buy_order_description_template` | No | Description template; supports `{{buy_order_id}}`. |
 
 A full list of supported settings and capabilities for this
 target is available by running:

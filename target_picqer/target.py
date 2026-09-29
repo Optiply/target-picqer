@@ -28,6 +28,7 @@ class TargetPicqer(TargetHotglue):
         th.Property("buy_order_export_warehouse", th.StringType),
         th.Property("buy_order_description_field", th.StringType),
         th.Property("buy_order_description_template", th.StringType),
+        th.Property("idfulfilment_customer", th.StringType),
     ).to_dict()
 
     def get_sink_class(self, stream_name: str) -> type[Sink] | None:

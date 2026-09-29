@@ -105,6 +105,18 @@ class BuyOrders(PicqerSink):
             return int(warehouse)
         return warehouse
 
+    def _add_fulfilment_customer(self, payload: dict[str, Any]) -> None:
+        fulfilment_customer = self.config.get("idfulfilment_customer")
+        if fulfilment_customer in (None, ""):
+            return
+
+        fulfilment_customer = self._coerce_int_if_numeric(fulfilment_customer)
+        if type(fulfilment_customer) is not int:
+            raise ValueError(
+                "idfulfilment_customer must be a numeric Picqer ID"
+            )
+        payload["idfulfilment_customer"] = fulfilment_customer
+
     def _add_supplier(self, payload: dict[str, Any], record: dict) -> None:
         supplier_name = record.get("supplier_name")
         supplier_remote_id = record.get("supplier_remoteId") or record.get(
@@ -222,6 +234,7 @@ class BuyOrders(PicqerSink):
                 "products": products,
             }
             self._add_supplier(mapping, record)
+            self._add_fulfilment_customer(mapping)
             self._add_description(mapping, record)
 
             if self.config.get("buy_order_export_as_concept"):
