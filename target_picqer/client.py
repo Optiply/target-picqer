@@ -3,6 +3,7 @@ from __future__ import annotations
 from base64 import b64encode
 from datetime import datetime
 import json
+import re
 from typing import Any
 
 from hotglue_singer_sdk.exceptions import (  # type: ignore[reportMissingImports]
@@ -19,6 +20,14 @@ ERROR_MESSAGE_KEYS = (
     "error_message",
     "error_description",
 )
+
+
+class MissingProductError(FatalAPIError):
+    """Picqer rejected a specific product ID."""
+
+    def __init__(self, message: str, product_id: str) -> None:
+        super().__init__(message)
+        self.product_id = product_id
 
 
 class PicqerSink(HotglueSink):
@@ -86,6 +95,22 @@ class PicqerSink(HotglueSink):
         if 400 <= response.status_code < 500:
             message = self.response_error_message(response)
             self.logger.error({"error": message})
+            if response.status_code in (400, 404, 422):
+                try:
+                    body = response.json()
+                except ValueError:
+                    body = None
+                if (
+                    isinstance(body, dict)
+                    and body.get("error") is True
+                    and body.get("error_code") == 20
+                ):
+                    product = re.fullmatch(
+                        r"Product '([0-9]+)' not found\.",
+                        str(body.get("error_message", "")),
+                    )
+                    if product:
+                        raise MissingProductError(message, product.group(1))
             raise FatalAPIError(message)
 
     def parse_json(self, input):

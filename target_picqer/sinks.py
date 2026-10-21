@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from target_picqer.client import PicqerSink
+from target_picqer.client import MissingProductError, PicqerSink
 
 
 class BuyOrders(PicqerSink):
@@ -263,9 +263,39 @@ class BuyOrders(PicqerSink):
             return None, False, state_updates
 
         try:
-            buy_order_response = self.request_api(
-                method_type, endpoint=endpoint, request_data=record
-            )
+            while True:
+                try:
+                    buy_order_response = self.request_api(
+                        method_type, endpoint=endpoint, request_data=record
+                    )
+                    break
+                except MissingProductError as err:
+                    if (
+                        purchase_order_id
+                        or self.config.get("export_remove_line_and_resend") is not True
+                    ):
+                        raise
+                    products = record["products"]
+                    remaining_products = [
+                        product
+                        for product in products
+                        if str(product["idproduct"]) != err.product_id
+                    ]
+                    if len(remaining_products) == len(products):
+                        raise
+                    if not remaining_products:
+                        raise ValueError(
+                            f"No products remain after removing missing product "
+                            f"{err.product_id}: {err}"
+                        ) from err
+                    self.logger.warning(
+                        "Removing missing Picqer product %s and retrying purchase "
+                        "order export (%s -> %s lines)",
+                        err.product_id,
+                        len(products),
+                        len(remaining_products),
+                    )
+                    record["products"] = remaining_products
             po_id = buy_order_response.json()["idpurchaseorder"]
             if (
                 not self.config.get("buy_order_export_as_concept")
