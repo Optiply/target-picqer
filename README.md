@@ -16,7 +16,16 @@ pipx install target-picqer
 
 ### Accepted Config Options
 
-- [ ] `Developer TODO:` Provide a list of config options accepted by the target.
+| Setting | Required | Description |
+| --- | --- | --- |
+| `api_key` | Yes | Picqer API key. |
+| `org` | Yes | Picqer organization subdomain. |
+| `picqer_fulfilment` | No | Use the supplier name instead of a Picqer supplier ID. |
+| `idfulfilment_customer` | No | Picqer fulfilment customer ID assigned to exported purchase orders. Configure this when products belong to a fulfilment customer. |
+| `buy_order_export_as_concept` | No | Leave created purchase orders in concept status. |
+| `buy_order_export_warehouse` | Yes for buy-order exports | Picqer warehouse ID used for exported purchase orders. |
+| `buy_order_description_field` | No | Picqer purchase-order field receiving the rendered description. |
+| `buy_order_description_template` | No | Description template; supports `{{buy_order_id}}`. |
 
 A full list of supported settings and capabilities for this
 target is available by running:
@@ -24,6 +33,24 @@ target is available by running:
 ```bash
 target-picqer --about
 ```
+
+### Retry new orders without missing products
+
+New purchase-order exports automatically retry without missing products. When
+Picqer rejects a create request with HTTP 400, 404, or 422, `error: true`, error code `20`,
+and `Product '<id>' not found.`, the target removes every line for that product ID,
+logs a warning, and retries. Each retry must remove at least one line. If no lines
+would remain, the order fails without sending an empty order.
+
+A successful reduced order is reported as successful; skipped lines are not
+automatically exported later. This changes only the outgoing payload, not the
+Optiply buy order. Existing-order updates, unrelated errors, and failures while
+marking an order as purchased do not trigger line removal. Concept mode still
+leaves the reduced order as a concept.
+
+See Picqer's [purchase-order API](https://picqer.com/en/api/purchaseorders) and
+[error codes](https://picqer.com/en/api/response-codes). Error code `20` alone means
+an item was not found, so the product-specific message is also required.
 
 ### Configure using environment variables
 

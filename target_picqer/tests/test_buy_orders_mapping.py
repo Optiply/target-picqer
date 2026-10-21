@@ -91,6 +91,50 @@ def test_buy_orders_uses_supplier_name_for_picqer_fulfilment():
     assert "idsupplier" not in payload
 
 
+def test_buy_orders_adds_configured_fulfilment_customer():
+    sink = make_sink(
+        {
+            "buy_order_export_warehouse": "6178",
+            "idfulfilment_customer": "10835",
+        }
+    )
+
+    payload = sink.preprocess_record(
+        {
+            "id": 123456,
+            "created_at": "2026-07-10",
+            "supplier_remoteId": "42",
+            "line_items": [{"product_remoteId": "10001", "quantity": 12}],
+        },
+        {},
+    )
+
+    assert payload["idfulfilment_customer"] == 10835
+
+
+@pytest.mark.parametrize("value", ["not-a-number", True])
+def test_buy_orders_rejects_invalid_fulfilment_customer(value):
+    sink = make_sink(
+        {
+            "buy_order_export_warehouse": "6178",
+            "idfulfilment_customer": value,
+        }
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="idfulfilment_customer must be a numeric Picqer ID",
+    ):
+        sink.preprocess_record(
+            {
+                "id": 123456,
+                "supplier_remoteId": "42",
+                "line_items": [{"product_remoteId": "10001", "quantity": 12}],
+            },
+            {},
+        )
+
+
 def test_buy_orders_requires_configured_warehouse():
     sink = make_sink({})
 
