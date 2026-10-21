@@ -26,7 +26,6 @@ pipx install target-picqer
 | `buy_order_export_warehouse` | Yes for buy-order exports | Picqer warehouse ID used for exported purchase orders. |
 | `buy_order_description_field` | No | Picqer purchase-order field receiving the rendered description. |
 | `buy_order_description_template` | No | Description template; supports `{{buy_order_id}}`. |
-| `export_remove_line_and_resend` | No | Default `false`. Remove missing products from new purchase-order exports and retry the remaining lines. |
 
 A full list of supported settings and capabilities for this
 target is available by running:
@@ -37,8 +36,8 @@ target-picqer --about
 
 ### Retry new orders without missing products
 
-Set `"export_remove_line_and_resend": true` to enable partial exports. When Picqer
-rejects a create request with HTTP 400, 404, or 422, `error: true`, error code `20`,
+New purchase-order exports automatically retry without missing products. When
+Picqer rejects a create request with HTTP 400, 404, or 422, `error: true`, error code `20`,
 and `Product '<id>' not found.`, the target removes every line for that product ID,
 logs a warning, and retries. Each retry must remove at least one line. If no lines
 would remain, the order fails without sending an empty order.

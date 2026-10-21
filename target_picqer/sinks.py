@@ -270,10 +270,7 @@ class BuyOrders(PicqerSink):
                     )
                     break
                 except MissingProductError as err:
-                    if (
-                        purchase_order_id
-                        or self.config.get("export_remove_line_and_resend") is not True
-                    ):
+                    if purchase_order_id:
                         raise
                     products = record["products"]
                     remaining_products = [

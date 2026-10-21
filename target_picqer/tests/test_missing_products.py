@@ -1,4 +1,4 @@
-"""Behavioral coverage for opt-in partial purchase-order exports."""
+"""Behavioral coverage for partial purchase-order exports."""
 
 from __future__ import annotations
 
@@ -36,7 +36,6 @@ def sink() -> Any:
     result._config = {
         "org": "synthetic-example",
         "api_key": "synthetic-not-a-credential",
-        "export_remove_line_and_resend": True,
     }
     result.logger = logging.getLogger(__name__)
     return result
@@ -118,20 +117,6 @@ def test_removes_all_lines_for_same_missing_product_in_concept_mode(sink, http, 
 
     assert len(calls) == 2
     assert calls[1] == ("POST", "purchaseorders", {**order(3), "status": "concept"})
-
-
-@pytest.mark.parametrize("flag", [None, False, "true"])
-def test_missing_product_removal_requires_boolean_opt_in(sink, http, flag):
-    responses, calls = http
-    sink._config.pop("export_remove_line_and_resend")
-    if flag is not None:
-        sink._config["export_remove_line_and_resend"] = flag
-    responses.append(missing_product(2))
-
-    with pytest.raises(RuntimeError, match="Product '2' not found"):
-        sink.upsert_record(order(2, 3), {})
-
-    assert calls == [("POST", "purchaseorders", order(2, 3))]
 
 
 @pytest.mark.parametrize(
