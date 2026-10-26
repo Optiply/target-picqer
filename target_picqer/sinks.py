@@ -15,7 +15,8 @@ class BuyOrders(PicqerSink):
 
     @property
     def name(self) -> str:
-        return "BuyOrders"
+        """Used for bookmark/summary key; must match real-time stream name (e.g. buyOrders)."""
+        return getattr(self, "stream_name", "buyOrders")
 
     @property
     def endpoint(self) -> str:

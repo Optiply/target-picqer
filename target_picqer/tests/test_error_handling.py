@@ -45,9 +45,11 @@ def test_validate_response_preserves_picqer_error_message():
 def test_purchase_order_error_message_includes_record_identifier():
     """Record-specific errors should include sink name, id, and API message."""
     sink = cast(Any, object.__new__(PurchaseOrders))
+    sink.stream_name = "buyOrders"
+    assert sink.name == sink.stream_name
 
     error = sink._record_error(
         {"id": 6054362}, RuntimeError("Verplicht: Betalingsconditie")
     )
 
-    assert str(error) == "BuyOrders ID: 6054362, Error: Verplicht: Betalingsconditie"
+    assert str(error) == "buyOrders ID: 6054362, Error: Verplicht: Betalingsconditie"
