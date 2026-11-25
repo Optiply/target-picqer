@@ -25,7 +25,7 @@ class TargetPicqer(TargetHotglue):
         th.Property("org", th.StringType, required=True),
         th.Property("picqer_fulfilment", th.BooleanType, default=False),
         th.Property("buy_order_export_as_concept", th.BooleanType, default=False),
-        th.Property("export_delivery_date", th.BooleanType, default=False),
+        th.Property("export_line_delivery_date", th.BooleanType, default=False),
         th.Property("buy_order_export_warehouse", th.StringType),
         th.Property("buy_order_description_field", th.StringType),
         th.Property("buy_order_description_template", th.StringType),

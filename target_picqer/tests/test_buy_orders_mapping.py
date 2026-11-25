@@ -167,24 +167,43 @@ def test_buy_orders_requires_product_remote_id():
         )
 
 
+@pytest.mark.parametrize(
+    "order_dates,expected_header_date",
+    [
+        ({"created_at": "2026-07-10"}, "2026-07-10"),
+        ({"delivery_date": "2026-07-15"}, "2026-07-15"),
+        (
+            {"created_at": "2026-07-10", "delivery_date": "2026-07-15T09:30:00Z"},
+            "2026-07-15T09:30:00Z",
+        ),
+        ({"created_at": "2026-07-10", "delivery_date": None}, "2026-07-10"),
+        ({"created_at": "2026-07-10", "delivery_date": ""}, "2026-07-10"),
+    ],
+)
 @pytest.mark.parametrize("existing_order", [False, True], ids=["create", "update"])
 @pytest.mark.parametrize(
     "flag_config,line_fields,expected_fields",
     [
         ({}, {"delivery_date": "2026-07-12"}, {}),
-        ({"export_delivery_date": False}, {"delivery_date": "2026-07-12"}, {}),
+        ({"export_line_delivery_date": False}, {"delivery_date": "2026-07-12"}, {}),
         (
-            {"export_delivery_date": True},
+            {"export_line_delivery_date": True},
             {"delivery_date": "2026-07-12"},
             {"delivery_date": "2026-07-12"},
         ),
-        ({"export_delivery_date": True}, {}, {}),
-        ({"export_delivery_date": True}, {"delivery_date": None}, {}),
-        ({"export_delivery_date": True}, {"delivery_date": ""}, {}),
+        ({"export_line_delivery_date": True}, {}, {}),
+        ({"export_line_delivery_date": True}, {"delivery_date": None}, {}),
+        ({"export_line_delivery_date": True}, {"delivery_date": ""}, {}),
     ],
 )
-def test_buy_orders_export_delivery_date(
-    monkeypatch, existing_order, flag_config, line_fields, expected_fields
+def test_buy_orders_export_line_delivery_date(
+    monkeypatch,
+    existing_order,
+    flag_config,
+    line_fields,
+    expected_fields,
+    order_dates,
+    expected_header_date,
 ):
     sink = make_sink({"buy_order_export_warehouse": "6178", **flag_config})
     sink.logger = Mock()
@@ -203,7 +222,7 @@ def test_buy_orders_export_delivery_date(
     monkeypatch.setattr(sink, "request_api", request)
     record = {
         "id": 123456,
-        "created_at": "2026-07-10",
+        **order_dates,
         "supplier_remoteId": "42",
         "line_items": [
             {"product_remoteId": "10001", "quantity": 12, **line_fields},
@@ -218,7 +237,7 @@ def test_buy_orders_export_delivery_date(
     expected_payload = {
         "idsupplier": 42,
         "idwarehouse": 6178,
-        "delivery_date": "2026-07-10",
+        "delivery_date": expected_header_date,
         "products": [
             {"idproduct": 10001, "amount": 12, **expected_fields},
             {"idproduct": 10002, "amount": 6, **expected_fields},
