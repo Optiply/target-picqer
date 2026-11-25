@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, cast
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -164,3 +165,83 @@ def test_buy_orders_requires_product_remote_id():
             },
             {},
         )
+
+
+@pytest.mark.parametrize("existing_order", [False, True], ids=["create", "update"])
+@pytest.mark.parametrize(
+    "flag_config,line_fields,expected_fields",
+    [
+        ({}, {"delivery_date": "2026-07-12"}, {}),
+        ({"export_delivery_date": False}, {"delivery_date": "2026-07-12"}, {}),
+        (
+            {"export_delivery_date": True},
+            {"delivery_date": "2026-07-12"},
+            {"delivery_date": "2026-07-12"},
+        ),
+        ({"export_delivery_date": True}, {}, {}),
+        ({"export_delivery_date": True}, {"delivery_date": None}, {}),
+        ({"export_delivery_date": True}, {"delivery_date": ""}, {}),
+    ],
+)
+def test_buy_orders_export_delivery_date(
+    monkeypatch, existing_order, flag_config, line_fields, expected_fields
+):
+    sink = make_sink({"buy_order_export_warehouse": "6178", **flag_config})
+    sink.logger = Mock()
+    response = Mock(status_code=200)
+    response.json.return_value = {
+        "idpurchaseorder": 900,
+        "products": [
+            {
+                "idproduct": 10001,
+                "idpurchaseorder_product": 7001,
+                "delivery_date": "2026-07-01",
+            }
+        ],
+    }
+    request = Mock(return_value=response)
+    monkeypatch.setattr(sink, "request_api", request)
+    record = {
+        "id": 123456,
+        "created_at": "2026-07-10",
+        "supplier_remoteId": "42",
+        "line_items": [
+            {"product_remoteId": "10001", "quantity": 12, **line_fields},
+            {"product_remoteId": "10002", "quantity": 6, **line_fields},
+        ],
+    }
+    if existing_order:
+        record["idpurchaseorder"] = 900
+
+    sink.upsert_record(sink.preprocess_record(record, {}), {})
+
+    expected_payload = {
+        "idsupplier": 42,
+        "idwarehouse": 6178,
+        "delivery_date": "2026-07-10",
+        "products": [
+            {"idproduct": 10001, "amount": 12, **expected_fields},
+            {"idproduct": 10002, "amount": 6, **expected_fields},
+        ],
+    }
+    if existing_order:
+        expected_payload["idpurchaseorder"] = 900
+        assert request.call_args_list == [
+            call("GET", "purchaseorders/900"),
+            call(
+                "PUT",
+                "purchaseorders/900/products/7001",
+                request_data={"amount": 12, **expected_fields},
+            ),
+            call(
+                "POST",
+                "purchaseorders/900/products",
+                request_data=expected_payload["products"][1],
+            ),
+            call("PUT", endpoint="purchaseorders/900", request_data=expected_payload),
+        ]
+    else:
+        assert request.call_args_list == [
+            call("POST", endpoint="purchaseorders", request_data=expected_payload),
+            call("POST", endpoint="purchaseorders/900/mark-as-purchased"),
+        ]

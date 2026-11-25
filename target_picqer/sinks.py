@@ -87,7 +87,7 @@ class BuyOrders(PicqerSink):
         # idproduct + amount; price and delivery_date are optional according to docs.
         if line.get("unit_price") not in (None, ""):
             payload["price"] = line.get("unit_price")
-        if line.get("delivery_date"):
+        if self.config.get("export_delivery_date") and line.get("delivery_date"):
             payload["delivery_date"] = line.get("delivery_date")
         if line.get("product_name"):
             payload["name"] = line.get("product_name")
